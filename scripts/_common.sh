@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="$ROOT/bin"; DATA="$ROOT/.native-data"; RESULTS="$ROOT/results"
 BASE_PORT=9101; PROM_PORT=9090
 : "${SETTLE:=45}"       # seconds to let the head block fill before measuring
-: "${MIN_AVAIL_GB:=2}"  # stop before the host itself runs out of RAM
+: "${MIN_AVAIL_GB:=10}"  # stop before the host itself runs out of RAM
 : "${INTERVAL:=1s}"     # scrape interval (1 Hz)
 : "${TIMEOUT:=900ms}"   # max tolerated scrape duration (must be < INTERVAL); overrun = dropped sample
 : "${PROTO:=PrometheusText0.0.4}"  # pin exposition format so every scrape parses identically

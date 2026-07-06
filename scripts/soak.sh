@@ -23,8 +23,10 @@ while :; do
   DUR=$(prom 'max(scrape_duration_seconds{job="client"})')
   UP=$(prom 'count(up{job="client"} == 1)')
   MEM=$(prom 'process_resident_memory_bytes{job="server"}')
-  echo "   t=${NOW}s head=$HEAD scrape=${DUR}s up=$UP mem=$MEM"
+  AV=$(avail_gb)
+  echo "   t=${NOW}s head=$HEAD scrape=${DUR}s up=$UP mem=$MEM avail=${AV}g"
   echo "$NOW,$HEAD,$DUR,$UP,$MEM" >> "$OUT"
+  [ "${AV:-99}" -lt "$MIN_AVAIL_GB" ] && { echo "host RAM low (${AV}g), stopping"; break; }
   [ "$NOW" -ge "$DURATION" ] && break
   sleep "$SAMPLE"
 done
