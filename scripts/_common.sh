@@ -1,4 +1,5 @@
 # Helpers shared by the test scripts: config, launch, query, cleanup.
+# A module is one unit Prometheus scrapes; each module exposes parameters (1 parameter = 1 series).
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,7 +12,7 @@ BASE_PORT=9101; PROM_PORT=9090
 : "${PROTO:=PrometheusText0.0.4}"  # pin exposition format so every scrape parses identically
 mkdir -p "$RESULTS"
 
-# $1 = number of client targets.
+# $1 = number of modules.
 write_config() {
   mkdir -p "$DATA"
   { echo "global:"
@@ -19,7 +20,7 @@ write_config() {
     echo "  scrape_timeout: $TIMEOUT"
     echo "  scrape_protocols: [$PROTO]"
     echo "scrape_configs:"
-    echo "  - job_name: client"
+    echo "  - job_name: modules"
     echo "    static_configs:"
     echo -n "      - targets: ["
     for i in $(seq 0 $(($1 - 1))); do echo -n "\"localhost:$((BASE_PORT + i))\","; done
@@ -29,9 +30,9 @@ write_config() {
   } > "$DATA/prom.yml"
 }
 
-# $1 = number of exporters, $2 = series each.
-# value-interval=1: values tick at 1 Hz. series/metric-interval=0: cardinality never changes.
-start_exporters() {
+# $1 = number of modules, $2 = parameters each.
+# value-interval=1: values tick at 1 Hz. series/metric-interval=0: parameter count never changes.
+start_modules() {
   for i in $(seq 0 $(($1 - 1))); do
     "$BIN/avalanche" --gauge-metric-count=1 --series-count="$2" --port=$((BASE_PORT + i)) \
       --value-interval=1 --series-interval=0 --metric-interval=0 >/dev/null 2>&1 &
@@ -52,6 +53,6 @@ prom() {
 avail_gb() { free -g | awk 'NR==2{print $7}'; }
 
 stop_all() {
-  for p in $PROM_PORT $(seq $BASE_PORT $((BASE_PORT + 199))); do fuser -k "${p}/tcp" 2>/dev/null; done
+  for p in $PROM_PORT $(seq $BASE_PORT $((BASE_PORT + 399))); do fuser -k "${p}/tcp" 2>/dev/null; done
   pkill -x avalanche 2>/dev/null; pkill -x prometheus 2>/dev/null; sleep 1
 }

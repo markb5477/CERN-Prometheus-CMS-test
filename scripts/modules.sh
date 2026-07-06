@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# Ramp total parameters up at 1 Hz; find where a scrape first exceeds the 1 s budget.
+# Module ramp: fixed number of modules, total parameters raised step by step.
+# Records scrape time and modules up at each step.
 source "$(dirname "$0")/_common.sh"
 trap stop_all EXIT
 
-MODULES=${MODULES:-80}
-read -ra STEPS <<< "${STEPS:-200000 400000 600000 800000 1000000 1200000 1400000 1600000 1800000 2000000}"
-OUT="$RESULTS/ramp.csv"
+MODULES=${MODULES:-25}
+read -ra TOTALS <<< "${TOTALS:-200000 400000 600000 700000 800000 850000 900000 950000 1000000 1050000 1100000 1150000 1200000}"
+OUT="$RESULTS/modules.csv"
 
 write_config "$MODULES"
 echo "params,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb" > "$OUT"
-for TOTAL in "${STEPS[@]}"; do
-  PM=$((TOTAL / MODULES))
+for TOTAL in "${TOTALS[@]}"; do
+  PM=$(( TOTAL / MODULES ))
   echo ">> $TOTAL params = $MODULES modules x $PM parameters"
   stop_all; rm -rf "$DATA/tsdb"
   start_modules "$MODULES" "$PM"; start_prometheus; sleep "$SETTLE"

@@ -28,7 +28,7 @@ def panel(ax, r, xcol, expected):
     disp = [min(y, YMAX * 0.97) if y else BUDGET for y in ys]
     ax.plot(xs, disp, color="#999", lw=1, zorder=1)
     for x, d, y, row, e in zip(xs, disp, ys, r, expected):
-        up = num(row.get("targets_up"))
+        up = num(row.get("modules_up"))
         ok = up is not None and up >= e and y is not None and y <= BUDGET
         ax.scatter(x, d, s=70, zorder=3,
                    color=OK if ok else BAD, edgecolor="white", linewidth=1)
@@ -48,30 +48,30 @@ if g:
     a1.annotate("real load\n~880k", xy=(880000, 1.15), fontsize=8.5, color="#555")
     a1.xaxis.set_major_formatter(kfmt)
     a1.set_xlabel("total parameters")
-    a1.set_title("growth at 316 DTC aggregators", loc="left", fontsize=11)
-    caption(a1, "880k parameters over 316 per-DTC aggregators (targets) = 2,784 parameters "
-                "each; pushed to 2.5M = 7,911 each. No sensors; 1 parameter = 1 series. Idea: "
-                "measure headroom before the node's total ingestion ceiling, not the per-target limit.")
+    a1.set_title("growth at 316 modules", loc="left", fontsize=11)
+    caption(a1, "880k parameters over 316 modules (per-DTC aggregation points) = 2,784 "
+                "parameters each; pushed to 2.5M = 7,911 each. 1 parameter = 1 series. Idea: "
+                "measure headroom before the node's total ingestion ceiling, not the per-module limit.")
 
 a = rows("cms_agg.csv")
 if a:
-    xs = [num(x["targets"]) for x in a]
-    panel(a2, a, "targets", xs)
+    xs = [num(x["modules"]) for x in a]
+    panel(a2, a, "modules", xs)
     a2.set_xscale("log"); a2.set_xticks(xs)
     a2.set_xticklabels([f"{int(n)}" for n in xs])
-    a2.set_xlabel("number of aggregators (880k fixed)")
-    a2.set_title("aggregation granularity", loc="left", fontsize=11)
-    caption(a2, "880k parameters fixed, aggregators coarsened 316 -> 8 (per-DTC toward "
-                "per-rack) = 2,785 up to 110,009 parameters each. Idea: show how consolidating "
-                "targets fattens each scrape, to pick a safe aggregation topology.")
+    a2.set_xlabel("number of modules (880k fixed)")
+    a2.set_title("module granularity", loc="left", fontsize=11)
+    caption(a2, "880k parameters fixed, modules coarsened 316 -> 8 (per-DTC toward per-rack) "
+                "= 2,785 up to 110,009 parameters each. Idea: show how consolidating modules "
+                "fattens each scrape, to pick a safe aggregation topology.")
     for x, row in zip(xs, a):
-        pt = num(row["per_target"])
+        pt = num(row["params_per_module"])
         if pt: a2.annotate(f"{int(pt/1000)}k", xy=(x, 0.06),
                            ha="center", fontsize=8, color="#555")
 
 fig.suptitle("CMS Tracker monitoring model, single Prometheus node at 1 Hz", fontsize=12.5)
 fig.tight_layout(rect=[0, 0.10, 1, 1])
-fig.text(0.5, 0.02, "green: all up and under budget    red: over budget or collapsed    "
-         "dashed: 1 s budget    labels = series per aggregator", ha="center", fontsize=9, color="#444")
+fig.text(0.5, 0.02, "green: all modules up and under budget    red: over budget or collapsed    "
+         "dashed: 1 s budget    labels = parameters per module", ha="center", fontsize=9, color="#444")
 fig.savefig(os.path.join(R, "cms.png"), bbox_inches="tight")
 print("-> results/cms.png")

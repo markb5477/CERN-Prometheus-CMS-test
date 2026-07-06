@@ -11,7 +11,7 @@ if pgrep -x avalanche >/dev/null || pgrep -x prometheus >/dev/null || pgrep -f r
 fi
 
 echo "host: $(uname -m), $(nproc) cores"; free -h | awk 'NR<=2'
-for t in sensors ramp sweep stress spike soak; do
+for t in modules ramp sweep stress spike soak; do
   echo; echo "##### $t #####"; "scripts/$t.sh"
 done
 echo; echo "done; plot with: python3 scripts/plot.py"
