@@ -49,9 +49,9 @@ if g:
     a1.xaxis.set_major_formatter(kfmt)
     a1.set_xlabel("total parameters")
     a1.set_title("growth at 316 DTC aggregators", loc="left", fontsize=11)
-    caption(a1, "Real CMS load (~880k) spread over 316 per-DTC aggregators, then "
-                "pushed past it. Idea: measure the headroom before a single node's "
-                "total ingestion ceiling, independent of how thin each target is.")
+    caption(a1, "880k parameters over 316 per-DTC aggregators (targets) = 2,784 parameters "
+                "each; pushed to 2.5M = 7,911 each. No sensors; 1 parameter = 1 series. Idea: "
+                "measure headroom before the node's total ingestion ceiling, not the per-target limit.")
 
 a = rows("cms_agg.csv")
 if a:
@@ -61,9 +61,9 @@ if a:
     a2.set_xticklabels([f"{int(n)}" for n in xs])
     a2.set_xlabel("number of aggregators (880k fixed)")
     a2.set_title("aggregation granularity", loc="left", fontsize=11)
-    caption(a2, "Same 880k parameters, aggregators coarsened 316 -> 8 (per-DTC "
-                "toward per-rack). Idea: show how consolidating targets fattens "
-                "each scrape, to pick a safe aggregation topology.")
+    caption(a2, "880k parameters fixed, aggregators coarsened 316 -> 8 (per-DTC toward "
+                "per-rack) = 2,785 up to 110,009 parameters each. Idea: show how consolidating "
+                "targets fattens each scrape, to pick a safe aggregation topology.")
     for x, row in zip(xs, a):
         pt = num(row["per_target"])
         if pt: a2.annotate(f"{int(pt/1000)}k", xy=(x, 0.06),

@@ -56,9 +56,11 @@ if r:
                         arrowprops=dict(arrowstyle="->", color=BAD))
             break
     ax.set_title("sensor ramp", loc="left", fontsize=11.5, weight="bold")
-    caption(ax, "Realistic detector model: 35 parameters per sensor across a fixed set "
-                "of boards, total stepped up to 1.2M. Idea: check the tracker's actual "
-                "operating load scrapes inside the 1 s budget.", width=95)
+    caption(ax, "Realistic model: 25 readout boards (scrape targets), 35 parameters per sensor. "
+                "Total stepped to 1.2M, i.e. up to 34,285 sensors spread over the 25 boards "
+                "(48,000 parameters per board). This is the only test that groups parameters into "
+                "sensors. Idea: confirm the tracker's real operating load scrapes inside the 1 s budget.",
+            width=95)
 
 # ---- supporting panels ----
 def panel(cell, name, xcol, title, xfmt=True, expected_from="ratio"):
@@ -76,8 +78,8 @@ def panel(cell, name, xcol, title, xfmt=True, expected_from="ratio"):
 ax = panel(gs[1, 0], "ramp.csv", "params", "ramp")
 if ax:
     ax.set_xlabel("total parameters")
-    caption(ax, "Many thin targets, total raised 200k to 2M. Idea: trace how scrape "
-                "time grows when each target stays light.")
+    caption(ax, "80 targets, no sensors: each holds total/80 parameters, i.e. 2,500 (at 200k) "
+                "up to 25,000 (at 2M). Idea: trace how scrape time grows when targets stay thin.")
 
 ax = panel(gs[1, 1], "sweep.csv", "exporters",
            "sweep (2M fixed)", xfmt=False, expected_from="self")
@@ -86,14 +88,15 @@ if ax:
     ax.set_xscale("log"); ax.set_xticks(xs)
     ax.set_xticklabels([f"{int(n)}" for n in xs])
     ax.set_xlabel("number of targets")
-    caption(ax, "Same 2M total, split across 1 to 160 targets. Idea: isolate the real "
-                "limit, series per target, not total volume or RAM.")
+    caption(ax, "2M parameters held fixed, no sensors, split across 1 to 160 targets: "
+                "2M down to 12,500 parameters each. Idea: isolate the real limit, parameters "
+                "per target, not total volume or RAM.")
 
 ax = panel(gs[2, 0], "stress.csv", "params", "stress")
 if ax:
     ax.set_xlabel("total parameters")
-    caption(ax, "Large jumps straight to 2M. Idea: find the breaking point quickly "
-                "rather than creeping up to it.")
+    caption(ax, "80 targets, no sensors, in large jumps: 6,250 (500k) to 25,000 (2M) parameters "
+                "each. Idea: find the breaking point fast rather than creeping up to it.")
 
 # spike: bar per phase
 r = rows("spike.csv")
@@ -110,12 +113,16 @@ if r:
     ax.set_xticklabels([x["phase"].replace("_", "\n") for x in r])
     ax.set_ylabel("scrape time (s)"); ax.grid(axis="y", alpha=0.25)
     ax.set_title("spike", loc="left", fontsize=10)
-    caption(ax, "Steady baseline, sudden 2M spike, back to baseline. Idea: test that "
-                "it survives a burst and recovers with no lingering damage.")
+    caption(ax, "80 targets, no sensors. Baseline 400k = 5,000 parameters/target; spike to "
+                "2M = 25,000/target; back to baseline. Idea: test burst survival and recovery.")
 
 fig.suptitle("Prometheus 1 Hz scrape tests", fontsize=13, y=0.995)
-fig.text(0.5, 0.008,
+fig.text(0.5, 0.020,
          "green: all targets up    red: scrape timed out    dashed: 1 s budget",
          ha="center", fontsize=9.5, color="#444")
+fig.text(0.5, 0.006,
+         "1 parameter = 1 Prometheus series; a target is one exporter modelling a board or aggregator; "
+         "only the sensor ramp groups parameters into 35-parameter sensors",
+         ha="center", fontsize=8.3, color="#777")
 fig.savefig(os.path.join(R, "suite.png"), bbox_inches="tight")
 print("-> results/suite.png")
