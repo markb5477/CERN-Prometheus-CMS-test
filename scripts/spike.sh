@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Baseline -> sudden 2M -> baseline on a running server; measure the hit and recovery.
+source "$(dirname "$0")/_common.sh"
+trap stop_all EXIT
+
+EXPORTERS=${EXPORTERS:-80}
+BASELINE=${BASELINE:-400000}
+SPIKE=${SPIKE:-2000000}
+HOLD=${HOLD:-60}
+OUT="$RESULTS/spike.csv"
+
+write_config "$EXPORTERS"
+echo "phase,params,head_series,max_scrape_s,targets_up,memory_bytes" > "$OUT"
+stop_all; rm -rf "$DATA/tsdb"; start_prometheus   # server stays up; only the load changes
+
+phase() {   # $1 = label, $2 = total params
+  pkill -x avalanche 2>/dev/null; sleep 1
+  start_exporters "$EXPORTERS" $(($2 / EXPORTERS)); sleep "$HOLD"
+  local HEAD DUR UP MEM
+  HEAD=$(prom 'prometheus_tsdb_head_series')
+  DUR=$(prom 'max(scrape_duration_seconds{job="client"})')
+  UP=$(prom 'count(up{job="client"} == 1)')
+  MEM=$(prom 'process_resident_memory_bytes{job="server"}')
+  echo "   [$1] $2: scrape=${DUR}s up=$UP/$EXPORTERS mem=$MEM"
+  echo "$1,$2,$HEAD,$DUR,$UP,$MEM" >> "$OUT"
+}
+phase baseline_before "$BASELINE"
+phase spike           "$SPIKE"
+phase baseline_after  "$BASELINE"
+echo "-> $OUT"
