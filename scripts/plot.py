@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Plot results/*.csv into results/suite.png."""
-import csv, os
+import csv, os, textwrap
 import matplotlib.pyplot as plt
+
+def caption(ax, text, width=70):
+    ax.text(0.0, -0.30, "\n".join(textwrap.wrap(text, width)), transform=ax.transAxes,
+            va="top", ha="left", fontsize=8.3, color="#555")
 
 R, BUDGET = "results", 1.0
 OK, BAD, LINE = "#2a9d8f", "#e76f51", "#c1121f"
@@ -33,8 +37,8 @@ def scatter(ax, xs, rs, expected):
     ax.set_ylabel("scrape time (s)")
     ax.grid(axis="y", alpha=0.25); ax.margins(x=0.06)
 
-fig = plt.figure(figsize=(11, 11.5))
-gs = fig.add_gridspec(3, 2, height_ratios=[1.25, 1, 1], hspace=0.45, wspace=0.22)
+fig = plt.figure(figsize=(11, 13.5))
+gs = fig.add_gridspec(3, 2, height_ratios=[1.25, 1, 1], hspace=0.85, wspace=0.24)
 
 # sensor ramp, full width on top
 r = rows("sensors.csv")
@@ -52,6 +56,9 @@ if r:
                         arrowprops=dict(arrowstyle="->", color=BAD))
             break
     ax.set_title("sensor ramp", loc="left", fontsize=11.5, weight="bold")
+    caption(ax, "Realistic detector model: 35 parameters per sensor across a fixed set "
+                "of boards, total stepped up to 1.2M. Idea: check the tracker's actual "
+                "operating load scrapes inside the 1 s budget.", width=95)
 
 # ---- supporting panels ----
 def panel(cell, name, xcol, title, xfmt=True, expected_from="ratio"):
@@ -67,18 +74,26 @@ def panel(cell, name, xcol, title, xfmt=True, expected_from="ratio"):
     return ax
 
 ax = panel(gs[1, 0], "ramp.csv", "params", "ramp")
-if ax: ax.set_xlabel("total parameters")
+if ax:
+    ax.set_xlabel("total parameters")
+    caption(ax, "Many thin targets, total raised 200k to 2M. Idea: trace how scrape "
+                "time grows when each target stays light.")
 
 ax = panel(gs[1, 1], "sweep.csv", "exporters",
-           "sweep (500k fixed)", xfmt=False, expected_from="self")
+           "sweep (2M fixed)", xfmt=False, expected_from="self")
 if ax:
     xs = [num(x["exporters"]) for x in rows("sweep.csv")]
     ax.set_xscale("log"); ax.set_xticks(xs)
     ax.set_xticklabels([f"{int(n)}" for n in xs])
     ax.set_xlabel("number of targets")
+    caption(ax, "Same 2M total, split across 1 to 160 targets. Idea: isolate the real "
+                "limit, series per target, not total volume or RAM.")
 
 ax = panel(gs[2, 0], "stress.csv", "params", "stress")
-if ax: ax.set_xlabel("total parameters")
+if ax:
+    ax.set_xlabel("total parameters")
+    caption(ax, "Large jumps straight to 2M. Idea: find the breaking point quickly "
+                "rather than creeping up to it.")
 
 # spike: bar per phase
 r = rows("spike.csv")
@@ -95,6 +110,8 @@ if r:
     ax.set_xticklabels([x["phase"].replace("_", "\n") for x in r])
     ax.set_ylabel("scrape time (s)"); ax.grid(axis="y", alpha=0.25)
     ax.set_title("spike", loc="left", fontsize=10)
+    caption(ax, "Steady baseline, sudden 2M spike, back to baseline. Idea: test that "
+                "it survives a burst and recovers with no lingering damage.")
 
 fig.suptitle("Prometheus 1 Hz scrape tests", fontsize=13, y=0.995)
 fig.text(0.5, 0.008,
