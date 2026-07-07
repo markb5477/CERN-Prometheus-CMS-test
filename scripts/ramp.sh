@@ -8,7 +8,7 @@ read -ra STEPS <<< "${STEPS:-200000 400000 600000 800000 1000000 1200000 1400000
 OUT="$RESULTS/ramp.csv"
 
 write_config "$MODULES"
-echo "params,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb" > "$OUT"
+echo "params,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct" > "$OUT"
 for TOTAL in "${STEPS[@]}"; do
   PM=$((TOTAL / MODULES))
   echo ">> $TOTAL params = $MODULES modules x $PM parameters"
@@ -19,8 +19,9 @@ for TOTAL in "${STEPS[@]}"; do
   UP=$(prom 'count(up{job="modules"} == 1)')
   MEM=$(prom 'process_resident_memory_bytes{job="server"}')
   AV=$(avail_gb)
-  echo "   head=$HEAD scrape=${DUR}s up=$UP/$MODULES mem=$MEM avail=${AV}g"
-  echo "$TOTAL,$PM,$HEAD,$DUR,$UP,$MEM,$AV" >> "$OUT"
+  CPU=$(cpu_pct); RAM=$(ram_pct)
+  echo "   head=$HEAD scrape=${DUR}s up=$UP/$MODULES mem=$MEM cpu=${CPU}% ram=${RAM}% avail=${AV}g"
+  echo "$TOTAL,$PM,$HEAD,$DUR,$UP,$MEM,$AV,$CPU,$RAM" >> "$OUT"
   [ "${AV:-99}" -lt "$MIN_AVAIL_GB" ] && { echo "host RAM low, stopping"; break; }
 done
 echo "-> $OUT"

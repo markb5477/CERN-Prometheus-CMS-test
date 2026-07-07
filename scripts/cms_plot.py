@@ -9,6 +9,7 @@ def caption(ax, text):
 
 R, BUDGET, YMAX = "results", 1.0, 1.4
 OK, BAD, LINE = "#2a9d8f", "#e76f51", "#c1121f"
+CPUC, RAMC = "#8338ec", "#3a86ff"   # CPU and RAM lines (right axis)
 plt.rcParams.update({"figure.dpi": 130, "font.size": 10})
 
 def rows(name):
@@ -22,6 +23,23 @@ def num(v):
 def kfmt(x, _=None):
     return f"{x/1e6:g}M" if x >= 1e6 else f"{x/1e3:g}k"
 
+def resources(ax, xs, rs):
+    # Prometheus CPU% and RAM% (of the whole node) on a second y-axis; skip if not recorded.
+    cpu = [num(r.get("cpu_pct")) for r in rs]
+    ram = [num(r.get("ram_pct")) for r in rs]
+    if not any(v is not None for v in cpu + ram):
+        return
+    nan = float("nan")
+    cpu = [c if c is not None else nan for c in cpu]
+    ram = [m if m is not None else nan for m in ram]
+    ax2 = ax.twinx()
+    ax2.plot(xs, cpu, color=CPUC, lw=1.4, marker="o", ms=3, label="CPU %", zorder=4)
+    ax2.plot(xs, ram, color=RAMC, lw=1.4, marker="s", ms=3, label="RAM %", zorder=4)
+    ax2.set_ylim(bottom=0)
+    ax2.set_ylabel("CPU / RAM (% of node)", fontsize=8.5, color="#555")
+    ax2.tick_params(axis="y", labelsize=7.5, colors="#555")
+    ax2.legend(loc="upper left", fontsize=7, framealpha=0.85)
+
 def panel(ax, r, xcol, expected):
     xs = [num(x[xcol]) for x in r]
     ys = [num(x["max_scrape_s"]) for x in r]
@@ -32,12 +50,15 @@ def panel(ax, r, xcol, expected):
         ok = up is not None and up >= e and y is not None and y <= BUDGET
         ax.scatter(x, d, s=70, zorder=3,
                    color=OK if ok else BAD, edgecolor="white", linewidth=1)
-        if y and y > YMAX:  # collapsed point, show true value
-            ax.annotate(f"{y:.0f} s\n{int(up)}/{int(e)} up", xy=(x, d),
-                        xytext=(x, d - 0.35), ha="center", fontsize=8, color=BAD)
+        if not ok and up is not None:  # collapse: label how many modules stayed up
+            over = y and y > YMAX
+            txt = f"{y:.0f} s\n{int(up)}/{int(e)} up" if over else f"{int(up)}/{int(e)} up"
+            ax.annotate(txt, xy=(x, d), xytext=(x, d - 0.35 if over else d + 0.15),
+                        ha="center", fontsize=8, color=BAD)
     ax.axhline(BUDGET, ls="--", color=LINE, lw=1.3)
     ax.set_ylim(0, YMAX); ax.set_ylabel("scrape time (s)")
     ax.grid(axis="y", alpha=0.25); ax.margins(x=0.08)
+    resources(ax, xs, r)
 
 fig, (a1, a2) = plt.subplots(1, 2, figsize=(12, 5.6))
 
@@ -73,5 +94,7 @@ fig.suptitle("CMS Tracker monitoring model, single Prometheus node at 1 Hz", fon
 fig.tight_layout(rect=[0, 0.10, 1, 1])
 fig.text(0.5, 0.02, "green: all modules up and under budget    red: over budget or collapsed    "
          "dashed: 1 s budget    labels = parameters per module", ha="center", fontsize=9, color="#444")
+fig.text(0.5, 0.005, "purple: CPU %    blue: RAM %  (right axis, % of node)",
+         ha="center", fontsize=8.5, color="#666")
 fig.savefig(os.path.join(R, "cms.png"), bbox_inches="tight")
 print("-> results/cms.png")

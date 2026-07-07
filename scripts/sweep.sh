@@ -7,7 +7,7 @@ TOTAL=${TOTAL:-2000000}
 read -ra FANOUTS <<< "${FANOUTS:-1 2 5 10 20 40 80 160}"
 OUT="$RESULTS/sweep.csv"
 
-echo "modules,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb" > "$OUT"
+echo "modules,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct" > "$OUT"
 for N in "${FANOUTS[@]}"; do
   PM=$((TOTAL / N))
   echo ">> $N modules x $PM parameters = $TOTAL"
@@ -18,8 +18,9 @@ for N in "${FANOUTS[@]}"; do
   UP=$(prom 'count(up{job="modules"} == 1)')
   MEM=$(prom 'process_resident_memory_bytes{job="server"}')
   AV=$(avail_gb)
-  echo "   head=$HEAD scrape=${DUR}s up=$UP/$N mem=$MEM"
-  echo "$N,$PM,$HEAD,$DUR,$UP,$MEM,$AV" >> "$OUT"
+  CPU=$(cpu_pct); RAM=$(ram_pct)
+  echo "   head=$HEAD scrape=${DUR}s up=$UP/$N mem=$MEM cpu=${CPU}% ram=${RAM}%"
+  echo "$N,$PM,$HEAD,$DUR,$UP,$MEM,$AV,$CPU,$RAM" >> "$OUT"
   [ "${AV:-99}" -lt "$MIN_AVAIL_GB" ] && { echo "host RAM low, stopping"; break; }
 done
 echo "-> $OUT"

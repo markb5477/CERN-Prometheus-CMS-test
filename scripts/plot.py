@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 R, BUDGET = "results", 1.0
 OK, BAD, LINE = "#2a9d8f", "#e76f51", "#c1121f"
+CPUC, RAMC = "#8338ec", "#3a86ff"   # CPU and RAM lines (right axis)
 plt.rcParams.update({"figure.dpi": 130, "font.size": 10})
 
 def caption(ax, text, width=70):
@@ -22,6 +23,23 @@ def num(v):
 def kfmt(x, _=None):
     return f"{x/1e6:g}M" if x >= 1e6 else f"{x/1e3:g}k"
 
+def resources(ax, xs, rs):
+    # Prometheus CPU% and RAM% (of the whole node) on a second y-axis; skip if not recorded.
+    cpu = [num(r.get("cpu_pct")) for r in rs]
+    ram = [num(r.get("ram_pct")) for r in rs]
+    if not any(v is not None for v in cpu + ram):
+        return
+    nan = float("nan")
+    cpu = [c if c is not None else nan for c in cpu]
+    ram = [m if m is not None else nan for m in ram]
+    ax2 = ax.twinx()
+    ax2.plot(xs, cpu, color=CPUC, lw=1.4, marker="o", ms=3, label="CPU %", zorder=4)
+    ax2.plot(xs, ram, color=RAMC, lw=1.4, marker="s", ms=3, label="RAM %", zorder=4)
+    ax2.set_ylim(bottom=0)
+    ax2.set_ylabel("CPU / RAM (% of node)", fontsize=8.5, color="#555")
+    ax2.tick_params(axis="y", labelsize=7.5, colors="#555")
+    ax2.legend(loc="upper left", fontsize=7, framealpha=0.85)
+
 def healthy(r, expected):
     up = num(r.get("modules_up"))
     return up is not None and up >= expected
@@ -36,6 +54,7 @@ def scatter(ax, xs, rs, expected):
     ax.axhline(BUDGET, ls="--", color=LINE, lw=1.3)
     ax.set_ylabel("scrape time (s)")
     ax.grid(axis="y", alpha=0.25); ax.margins(x=0.06)
+    resources(ax, xs, rs)
 
 fig = plt.figure(figsize=(11, 13.5))
 gs = fig.add_gridspec(3, 2, height_ratios=[1.25, 1, 1], hspace=0.85, wspace=0.24)
@@ -110,13 +129,15 @@ if r:
     ax.set_xticks(range(len(r)))
     ax.set_xticklabels([x["phase"].replace("_", "\n") for x in r])
     ax.set_ylabel("scrape time (s)"); ax.grid(axis="y", alpha=0.25)
+    resources(ax, list(range(len(r))), r)
     ax.set_title("spike", loc="left", fontsize=10)
     caption(ax, "80 modules. Baseline 400k = 5,000 parameters/module; spike to 2M = "
                 "25,000/module; back to baseline. Idea: test burst survival and recovery.")
 
 fig.suptitle("Prometheus 1 Hz scrape tests", fontsize=13, y=0.995)
 fig.text(0.5, 0.020,
-         "green: all modules up    red: scrape timed out    dashed: 1 s budget",
+         "green: all modules up    red: scrape timed out    dashed: 1 s budget    "
+         "purple: CPU %    blue: RAM %  (right axis, % of node)",
          ha="center", fontsize=9.5, color="#444")
 fig.text(0.5, 0.006,
          "1 parameter = 1 Prometheus series; a module is one unit Prometheus scrapes "

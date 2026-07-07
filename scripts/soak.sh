@@ -14,7 +14,7 @@ write_config "$MODULES"
 stop_all; rm -rf "$DATA/tsdb"
 start_modules "$MODULES" "$PM"; start_prometheus
 echo "holding $TOTAL params for ${DURATION}s"
-echo "elapsed_s,head_series,max_scrape_s,modules_up,memory_bytes" > "$OUT"
+echo "elapsed_s,head_series,max_scrape_s,modules_up,memory_bytes,cpu_pct,ram_pct" > "$OUT"
 sleep "$SETTLE"
 START=$(date +%s)
 while :; do
@@ -24,8 +24,9 @@ while :; do
   UP=$(prom 'count(up{job="modules"} == 1)')
   MEM=$(prom 'process_resident_memory_bytes{job="server"}')
   AV=$(avail_gb)
-  echo "   t=${NOW}s head=$HEAD scrape=${DUR}s up=$UP mem=$MEM avail=${AV}g"
-  echo "$NOW,$HEAD,$DUR,$UP,$MEM" >> "$OUT"
+  CPU=$(cpu_pct); RAM=$(ram_pct)
+  echo "   t=${NOW}s head=$HEAD scrape=${DUR}s up=$UP mem=$MEM cpu=${CPU}% ram=${RAM}% avail=${AV}g"
+  echo "$NOW,$HEAD,$DUR,$UP,$MEM,$CPU,$RAM" >> "$OUT"
   [ "${AV:-99}" -lt "$MIN_AVAIL_GB" ] && { echo "host RAM low (${AV}g), stopping"; break; }
   [ "$NOW" -ge "$DURATION" ] && break
   sleep "$SAMPLE"

@@ -8,7 +8,7 @@ read -ra STEPS <<< "${STEPS:-500000 1000000 1500000 2000000}"
 OUT="$RESULTS/stress.csv"
 
 write_config "$MODULES"
-echo "params,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,verdict" > "$OUT"
+echo "params,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,cpu_pct,ram_pct,verdict" > "$OUT"
 LAST_OK=0
 for TOTAL in "${STEPS[@]}"; do
   PM=$((TOTAL / MODULES))
@@ -19,13 +19,14 @@ for TOTAL in "${STEPS[@]}"; do
   DUR=$(prom 'max(scrape_duration_seconds{job="modules"})')
   UP=$(prom 'count(up{job="modules"} == 1)')
   MEM=$(prom 'process_resident_memory_bytes{job="server"}')
+  CPU=$(cpu_pct); RAM=$(ram_pct)
   if [ -n "$DUR" ] && awk "BEGIN{exit !($DUR < 1.0)}" && [ "${UP:-0}" = "$MODULES" ]; then
     V=ok; LAST_OK=$TOTAL
   else
     V=BROKE
   fi
-  echo "   scrape=${DUR}s up=$UP/$MODULES -> $V"
-  echo "$TOTAL,$PM,$HEAD,$DUR,$UP,$MEM,$V" >> "$OUT"
+  echo "   scrape=${DUR}s up=$UP/$MODULES cpu=${CPU}% ram=${RAM}% -> $V"
+  echo "$TOTAL,$PM,$HEAD,$DUR,$UP,$MEM,$CPU,$RAM,$V" >> "$OUT"
   [ "$V" = BROKE ] && break
 done
 echo "last healthy: $LAST_OK params -> $OUT"

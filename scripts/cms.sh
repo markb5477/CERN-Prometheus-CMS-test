@@ -21,7 +21,7 @@ LAST_AV=99
 
 # $1 modules, $2 total parameters, $3 leading key, $4 output file.
 measure() {
-  local n=$1 pm=$(($2 / $1)) head dur up mem av
+  local n=$1 pm=$(($2 / $1)) head dur up mem av cpu ram
   stop_all; rm -rf "$DATA/tsdb"; write_config "$n"
   start_modules "$n" "$pm"; start_prometheus; sleep "$SETTLE"
   head=$(prom 'prometheus_tsdb_head_series')
@@ -29,15 +29,16 @@ measure() {
   up=$(prom 'count(up{job="modules"} == 1)')
   mem=$(prom 'process_resident_memory_bytes{job="server"}')
   av=$(avail_gb)
-  echo "   params_per_module=$pm head=$head scrape=${dur}s up=$up/$n mem=$mem avail=${av}g"
-  echo "$3,$pm,$head,$dur,$up,$mem,$av" >> "$4"
+  cpu=$(cpu_pct); ram=$(ram_pct)
+  echo "   params_per_module=$pm head=$head scrape=${dur}s up=$up/$n mem=$mem cpu=${cpu}% ram=${ram}% avail=${av}g"
+  echo "$3,$pm,$head,$dur,$up,$mem,$av,$cpu,$ram" >> "$4"
   LAST_AV=${av:-99}
 }
 
 echo "model: $BASE params, $MODULES modules, $((BASE / MODULES)) params per module"
 
 G="$RESULTS/cms_grow.csv"
-echo "params,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb" > "$G"
+echo "params,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct" > "$G"
 for T in "${GROW[@]}"; do
   echo ">> grow: $T params / $MODULES modules = $((T / MODULES)) per module"
   measure "$MODULES" "$T" "$T" "$G"
@@ -45,7 +46,7 @@ for T in "${GROW[@]}"; do
 done
 
 A="$RESULTS/cms_agg.csv"
-echo "modules,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb" > "$A"
+echo "modules,params_per_module,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct" > "$A"
 for N in "${AGG[@]}"; do
   echo ">> agg: $BASE params / $N modules = $((BASE / N)) per module"
   measure "$N" "$BASE" "$N" "$A"

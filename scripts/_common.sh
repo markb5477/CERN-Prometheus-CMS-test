@@ -12,6 +12,9 @@ BASE_PORT=9101; PROM_PORT=9090
 : "${PROTO:=PrometheusText0.0.4}"  # pin exposition format so every scrape parses identically
 mkdir -p "$RESULTS"
 
+CORES=$(nproc)                                # for CPU as a share of the whole node
+MEM_TOTAL=$(free -b | awk 'NR==2{print $2}')  # total RAM in bytes, for RAM as a share of the node
+
 # $1 = number of modules.
 write_config() {
   mkdir -p "$DATA"
@@ -51,6 +54,21 @@ prom() {
 }
 
 avail_gb() { free -g | awk 'NR==2{print $7}'; }
+
+# Prometheus process CPU as a percentage of the whole node (100 = every core busy).
+# process_cpu_seconds_total is cumulative, so we take its rate over the settle window.
+cpu_pct() {
+  local c; c=$(prom 'rate(process_cpu_seconds_total{job="server"}[30s])')
+  [ -z "$c" ] && return
+  awk -v c="$c" -v n="$CORES" 'BEGIN{ printf "%.2f", (n>0)? c/n*100 : 0 }'
+}
+
+# Prometheus resident memory as a percentage of the node's total RAM.
+ram_pct() {
+  local m; m=$(prom 'process_resident_memory_bytes{job="server"}')
+  [ -z "$m" ] && return
+  awk -v m="$m" -v t="$MEM_TOTAL" 'BEGIN{ printf "%.2f", (t>0)? m/t*100 : 0 }'
+}
 
 stop_all() {
   for p in $PROM_PORT $(seq $BASE_PORT $((BASE_PORT + 399))); do fuser -k "${p}/tcp" 2>/dev/null; done
