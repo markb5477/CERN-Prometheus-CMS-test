@@ -11,7 +11,7 @@ require_ssh "${LOAD_ARR[@]}" "${COLL_ARR[@]}"
 
 OUT="$DATA/twin.csv"
 mkdir -p "$NATIVE"
-echo "replica,host,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_p99_s" > "$OUT"
+echo "replica,host,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_s" > "$OUT"
 
 stop_fleet() { for h in "${LOAD_ARR[@]}" "${COLL_ARR[@]}"; do
   rsh "$h" "$REMOTE_ROOT/scripts/avalanche/stop.sh; $REMOTE_ROOT/scripts/prometheus/stop.sh" >/dev/null 2>&1 || true; done; }

@@ -20,7 +20,7 @@ scr = [num(x["max_scrape_s"]) or BUDGET for x in r]
 up = [num(x.get("modules_up")) for x in r]
 tgt = [num(x["targets"]) for x in r]
 par = [num(x["params"]) for x in r]
-cad = [num(x.get("cadence_p99_s")) for x in r]
+cad = [num(x.get("cadence_s") or x.get("cadence_p99_s")) for x in r]
 xs = list(range(len(r)))
 
 fig, ax = plt.subplots(figsize=(8.5, 5.4))

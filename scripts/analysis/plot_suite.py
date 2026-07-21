@@ -20,7 +20,7 @@ def expected(rs):
 
 
 def slipping(r):
-    c = num(r.get("cadence_p99_s"))
+    c = num(r.get("cadence_s") or r.get("cadence_p99_s"))
     return c is not None and c > CADENCE_MAX
 
 

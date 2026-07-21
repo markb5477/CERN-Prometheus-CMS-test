@@ -10,7 +10,7 @@ trap stop_all EXIT
 N=${TARGETS:-$FULL_TARGETS}   # 230 real boards, held fixed
 read -ra IT_MIX <<< "${IT_MIX:-0 25 50 115 230}"
 OUT="$DATA/sweep.csv"
-echo "it_boards,it_frac,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_p99_s" > "$OUT"
+echo "it_boards,it_frac,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_s" > "$OUT"
 for IT in "${IT_MIX[@]}"; do
   [ "$IT" -gt "$N" ] && IT=$N
   OT=$(( N - IT )); P=$(( OT * OT_PER_BOARD + IT * IT_PER_BOARD ))

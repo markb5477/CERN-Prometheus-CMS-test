@@ -33,7 +33,7 @@ cum_boards() {
 }
 
 write_config "$(( OT + SP_IT ))"
-echo "phase,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,cpu_pct,ram_pct,cadence_p99_s" > "$OUT"
+echo "phase,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,cpu_pct,ram_pct,cadence_s" > "$OUT"
 stop_all; rm -rf "$TSDB_ROOT/tsdb"; start_prometheus   # server stays up; only the load changes
 
 measure() {   # $1 label, $2 ot boards online, $3 it boards online

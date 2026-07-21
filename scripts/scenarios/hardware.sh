@@ -20,7 +20,7 @@ N=${#TARGETS[@]}
 
 OUT="$DATA/hardware.csv"
 mkdir -p "$NATIVE"
-echo "label,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_p99_s" > "$OUT"
+echo "label,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_s" > "$OUT"
 
 cleanup() { fuser -k "$PROM_PORT/tcp" 2>/dev/null; pkill -x prometheus 2>/dev/null; sleep 1; }
 trap cleanup EXIT

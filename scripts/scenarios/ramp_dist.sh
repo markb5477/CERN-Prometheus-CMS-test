@@ -30,7 +30,7 @@ COLL=${COLL_ARR[0]}                    # single isolated Prometheus node for the
 OUT="$DATA/ramp_dist.csv"
 mkdir -p "$NATIVE"
 
-echo "scale,ot,it,targets,params,head_series,max_scrape_s,modules_up,cadence_p99_s,memory_bytes,cpu_pct,ram_pct,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample,load_av_cpu,load_av_rss,load_host_cpu,load_avail_gb,status" > "$OUT"
+echo "scale,ot,it,targets,params,head_series,max_scrape_s,modules_up,cadence_s,memory_bytes,cpu_pct,ram_pct,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample,load_av_cpu,load_av_rss,load_host_cpu,load_avail_gb,status" > "$OUT"
 
 stop_fleet() {
   for h in "${LOAD_ARR[@]}"; do rsh "$h" "$REMOTE_ROOT/scripts/avalanche/stop.sh" >/dev/null 2>&1 || true; done

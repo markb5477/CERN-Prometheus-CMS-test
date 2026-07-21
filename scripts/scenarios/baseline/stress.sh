@@ -8,7 +8,7 @@ trap stop_all EXIT
 
 read -ra SCALES <<< "${SCALES:-1.0 1.5 2.0 3.0}"
 OUT="$DATA/stress.csv"
-echo "scale,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,cpu_pct,ram_pct,cadence_p99_s,verdict" > "$OUT"
+echo "scale,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,cpu_pct,ram_pct,cadence_s,verdict" > "$OUT"
 LAST_OK=0
 for S in "${SCALES[@]}"; do
   OT=$(awk -v b="$OT_BOARDS" -v s="$S" 'BEGIN{printf "%d", b*s + 0.5}')

@@ -2,12 +2,12 @@
 # ON a collector node: wait SETTLE for the head block to fill, sample the local Prometheus
 # once, and print ONE CSV row to stdout (the controller captures and files it):
 #   <label>,<head_series>,<max_scrape_s>,<modules_up>,<memory_bytes>,<host_avail_gb>,<cpu_pct>,
-#   <ram_pct>,<cadence_p99_s>,<block_bytes>,<head_bytes>,<wal_bytes>,<disk_bytes>,
+#   <ram_pct>,<cadence_s>,<block_bytes>,<head_bytes>,<wal_bytes>,<disk_bytes>,
 #   <samples_appended>,<bytes_per_sample>
 # $1 = label (first column). Query a specific instance with PROM_URL=http://localhost:<port>.
-# max_scrape_s is the windowed worst over the last $WIN; cadence_p99_s is the p99 actual gap
-# between scrape cycles (>~1.05s => 1 Hz slipping even if per-scrape time looks fine). The
-# storage columns come straight from the TSDB's own metrics (no du needed, so this works
+# max_scrape_s is the windowed worst over the last $WIN; cadence_s is the mean actual gap
+# between scrape cycles over the same window (>~1.05s => 1 Hz slipping even if per-scrape
+# time looks fine). The storage columns come straight from the TSDB's own metrics (no du needed, so this works
 # unchanged over SSH); bytes_per_sample = disk/samples is a running aggregate incl. WAL - the
 # clean compacted rate is delta(block_bytes)/delta(samples) across a compaction. cpu_pct/ram_pct
 # are Prometheus's own process metrics = the TRUE per-node footprint (the box is uncontended).
@@ -21,7 +21,12 @@ UP=$(prom 'count(up{job="modules"} == 1)')
 MEM=$(prom 'process_resident_memory_bytes{job="server"}')
 AV=$(avail_gb)
 CPU=$(cpu_pct); RAM=$(ram_pct)
-CAD=$(prom 'max(prometheus_target_interval_length_seconds{quantile="0.99"})')
+# Windowed MEAN gap between scrape cycles over the last $WIN. Do NOT use the summary's
+# {quantile="0.99"} here: that quantile is cumulative over the whole process lifetime, and
+# start.sh launches a fresh Prometheus per step, so at a short SETTLE the p99 is just the
+# startup transient (it reported 1.7s at 51 targets / 4% CPU). rate(_sum)/rate(_count) is
+# confined to $WIN, which begins well after discovery has settled.
+CAD=$(prom "max(rate(prometheus_target_interval_length_seconds_sum[$WIN]) / rate(prometheus_target_interval_length_seconds_count[$WIN]))")
 BB=$(prom 'prometheus_tsdb_storage_blocks_bytes{job="server"}')
 HB=$(prom 'prometheus_tsdb_head_chunks_storage_size_bytes{job="server"}')
 WB=$(prom 'prometheus_tsdb_wal_storage_size_bytes{job="server"}')

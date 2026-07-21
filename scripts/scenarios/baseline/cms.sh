@@ -11,7 +11,7 @@ source "$(dirname "$0")/../../config/common.sh"
 trap stop_all EXIT
 
 OUT="$DATA/cms.csv"
-echo "config,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_p99_s" > "$OUT"
+echo "config,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_s" > "$OUT"
 
 measure() {   # $1 label, $2 ot boards, $3 it boards
   local n=$(( $2 + $3 )) p=$(( $2 * OT_PER_BOARD + $3 * IT_PER_BOARD )) row

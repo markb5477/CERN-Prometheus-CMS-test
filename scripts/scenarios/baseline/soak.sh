@@ -32,7 +32,7 @@ echo "holding $N boards / $P params for ${DURATION}s${MIN_BLOCK:+ (min-block=$MI
 #   disk_bytes = block_bytes+head_bytes+wal_bytes ; bytes_per_sample = disk_bytes/samples_appended
 #   (running aggregate incl. WAL - a conservative upper bound; the clean COMPACTED rate is the
 #   delta of block_bytes / delta of samples_appended across a compaction, done in analysis).
-echo "elapsed_s,head_series,max_scrape_s,modules_up,cadence_p99_s,blocks,memory_bytes,cpu_pct,ram_pct,prom_cpu_proc,prom_rss_proc,av_cpu,av_rss,host_cpu,host_ram_used,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample" > "$OUT"
+echo "elapsed_s,head_series,max_scrape_s,modules_up,cadence_s,blocks,memory_bytes,cpu_pct,ram_pct,prom_cpu_proc,prom_rss_proc,av_cpu,av_rss,host_cpu,host_ram_used,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample" > "$OUT"
 START=$(date +%s)
 while :; do
   NOW=$(($(date +%s) - START))

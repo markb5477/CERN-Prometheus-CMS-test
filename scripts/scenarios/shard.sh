@@ -14,7 +14,7 @@ read -ra KS <<< "${SHARD_SET:-1 2 4 8}"
 NC=${#COLL_ARR[@]}
 OUT="$DATA/shard.csv"
 mkdir -p "$NATIVE"
-echo "shards,shard_index,host,port,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_p99_s" > "$OUT"
+echo "shards,shard_index,host,port,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_s" > "$OUT"
 
 stop_fleet() { for h in "${LOAD_ARR[@]}" "${COLL_ARR[@]}"; do
   rsh "$h" "$REMOTE_ROOT/scripts/avalanche/stop.sh; $REMOTE_ROOT/scripts/prometheus/stop.sh" >/dev/null 2>&1 || true; done; }

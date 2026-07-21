@@ -9,7 +9,7 @@ trap stop_all EXIT
 
 read -ra SCALES <<< "${SCALES:-0.25 0.5 0.75 1.0 1.25 1.5 2.0}"
 OUT="$DATA/modules.csv"
-echo "scale,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_p99_s" > "$OUT"
+echo "scale,params,targets,head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_s" > "$OUT"
 for S in "${SCALES[@]}"; do
   OT=$(awk -v b="$OT_BOARDS" -v s="$S" 'BEGIN{printf "%d", b*s + 0.5}')
   IT=$(awk -v b="$IT_BOARDS" -v s="$S" 'BEGIN{printf "%d", b*s + 0.5}')

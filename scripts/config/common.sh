@@ -204,9 +204,9 @@ bringup_mixed() {
 }
 
 # one sample of the running collector as a CSV fragment:
-#   head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_p99_s
+#   head_series,max_scrape_s,modules_up,memory_bytes,host_avail_gb,cpu_pct,ram_pct,cadence_s
 # max_scrape_s is the windowed worst over the last $WIN (not a single instant), so a transient
-# overrun in the settle window still shows. cadence_p99_s is the p99 actual gap between scrape
+# overrun in the settle window still shows. cadence_s is the p99 actual gap between scrape
 # cycles: >~1.05s means 1 Hz is slipping even when the per-scrape time still looks fine.
 sample() {
   echo "$(prom 'prometheus_tsdb_head_series'),$(prom "max_over_time(max(scrape_duration_seconds{job=\"modules\"})[$WIN:1s])"),$(prom 'count(up{job="modules"} == 1)'),$(prom 'process_resident_memory_bytes{job="server"}'),$(avail_gb),$(cpu_pct),$(ram_pct),$(prom 'max(prometheus_target_interval_length_seconds{quantile="0.99"})')"

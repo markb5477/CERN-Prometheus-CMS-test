@@ -27,7 +27,7 @@ REPEAT=${REPEAT:-1}                            # samples taken (and logged) per 
 PROC_WIN=${PROC_WIN:-1}                        # /proc CPU sampling window (s); widen for cleaner low-load reads
 OUT="$DATA/pretest.csv"
 
-echo "scale,rep,ot,it,targets,params,head_series,max_scrape_s,modules_up,cadence_p99_s,memory_bytes,cpu_pct,ram_pct,prom_cpu_proc,prom_rss_proc,av_cpu,av_rss,host_cpu,host_ram_used,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample,status" > "$OUT"
+echo "scale,rep,ot,it,targets,params,head_series,max_scrape_s,modules_up,cadence_s,memory_bytes,cpu_pct,ram_pct,prom_cpu_proc,prom_rss_proc,av_cpu,av_rss,host_cpu,host_ram_used,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample,status" > "$OUT"
 
 for S in $SCALES; do
   CUR=$(free -g | awk 'NR==2{print $7}')
