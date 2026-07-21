@@ -29,6 +29,9 @@ LOAD_SAT_GB=${LOAD_SAT_GB:-2}          # ...or below this GB available
 COLL=${COLL_ARR[0]}                    # single isolated Prometheus node for the ceiling test
 OUT="$DATA/ramp_dist.csv"
 mkdir -p "$NATIVE"
+# Archive rather than truncate: a coarse and a fine ramp are separate datasets, and the
+# second invocation would otherwise silently destroy the first.
+[ -f "$OUT" ] && mv "$OUT" "${OUT%.csv}-$(date -r "$OUT" +%Y%m%d-%H%M%S).csv"
 
 echo "scale,ot,it,targets,params,head_series,max_scrape_s,modules_up,cadence_s,memory_bytes,cpu_pct,ram_pct,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample,load_av_cpu,load_av_rss,load_host_cpu,load_avail_gb,status" > "$OUT"
 

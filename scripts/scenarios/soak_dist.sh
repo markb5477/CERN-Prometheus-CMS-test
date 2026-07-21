@@ -38,6 +38,10 @@ READY_TIMEOUT=${READY_TIMEOUT:-300}
 COLL=${COLL_ARR[0]}
 OUT="$DATA/soak_dist.csv"
 mkdir -p "$NATIVE"
+# Archive any previous run instead of truncating it: a soak costs hours, and the disk run
+# (MIN_BLOCK) and RAM run (default blocks) answer different questions - losing either to the
+# next invocation would mean running it again. Timestamp comes from the old file's mtime.
+[ -f "$OUT" ] && mv "$OUT" "${OUT%.csv}-$(date -r "$OUT" +%Y%m%d-%H%M%S).csv"
 
 OT=$(awk -v b="$OT_BOARDS" -v s="$SCALE" 'BEGIN{printf "%d", b*s + 0.5}')
 IT=$(awk -v b="$IT_BOARDS" -v s="$SCALE" 'BEGIN{printf "%d", b*s + 0.5}')
