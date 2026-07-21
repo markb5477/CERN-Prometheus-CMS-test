@@ -1,0 +1,26 @@
+# prebuilt binaries (copied to each host, too big for git)
+bin/
+
+# transient run state
+.native-data/
+/data/
+run.log
+__pycache__/
+
+# python venv for build_deck.py
+.deckvenv/
+
+# generated slide deck (rebuild with build_deck.py)
+presentation.pptx
+
+# real secrets.env holds the CERN password; only the .example template is tracked
+*.env
+
+# generated data/plots (laptop scratch); results-hpc/ is kept on purpose
+results/*.csv
+results/*.png
+scripts/data/*.csv
+scripts/graphs/*.png
+
+# real board list may name internal CERN endpoints; only the .example is tracked
+scripts/config/targets.real

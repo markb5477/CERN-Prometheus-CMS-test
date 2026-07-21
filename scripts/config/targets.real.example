@@ -1,0 +1,11 @@
+# Real-hardware target inventory for scenarios/hardware.sh.
+# Copy to targets.real (gitignored) and list the REAL module exporters, one per line as
+#   host:port      (each must already serve Prometheus text format at http://host:port/metrics)
+# Blank lines and #-comments are ignored. No Avalanche is launched for this test: the
+# exporters run on the sensors' own hardware, so Prometheus (run locally by hardware.sh)
+# is already uncontended by the load. This validates the synthetic C on real modules.
+
+# examples -- replace with the actual bench endpoints:
+# bench-fed-01.cern.ch:9100
+# bench-fed-02.cern.ch:9100
+# 192.168.1.50:9101

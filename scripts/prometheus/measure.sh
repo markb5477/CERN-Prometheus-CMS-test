@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# ON a collector node: wait SETTLE for the head block to fill, sample the local Prometheus
+# once, and print ONE CSV row to stdout (the controller captures and files it):
+#   <label>,<head_series>,<max_scrape_s>,<modules_up>,<memory_bytes>,<host_avail_gb>,<cpu_pct>,
+#   <ram_pct>,<cadence_p99_s>,<block_bytes>,<head_bytes>,<wal_bytes>,<disk_bytes>,
+#   <samples_appended>,<bytes_per_sample>
+# $1 = label (first column). Query a specific instance with PROM_URL=http://localhost:<port>.
+# max_scrape_s is the windowed worst over the last $WIN; cadence_p99_s is the p99 actual gap
+# between scrape cycles (>~1.05s => 1 Hz slipping even if per-scrape time looks fine). The
+# storage columns come straight from the TSDB's own metrics (no du needed, so this works
+# unchanged over SSH); bytes_per_sample = disk/samples is a running aggregate incl. WAL - the
+# clean compacted rate is delta(block_bytes)/delta(samples) across a compaction. cpu_pct/ram_pct
+# are Prometheus's own process metrics = the TRUE per-node footprint (the box is uncontended).
+set -uo pipefail
+source "$(cd "$(dirname "$0")/../config" && pwd)/common.sh"
+LABEL=${1:?usage: measure.sh <label>}
+sleep "$SETTLE"
+HEAD=$(prom 'prometheus_tsdb_head_series')
+DUR=$(prom "max_over_time(max(scrape_duration_seconds{job=\"modules\"})[$WIN:1s])")
+UP=$(prom 'count(up{job="modules"} == 1)')
+MEM=$(prom 'process_resident_memory_bytes{job="server"}')
+AV=$(avail_gb)
+CPU=$(cpu_pct); RAM=$(ram_pct)
+CAD=$(prom 'max(prometheus_target_interval_length_seconds{quantile="0.99"})')
+BB=$(prom 'prometheus_tsdb_storage_blocks_bytes{job="server"}')
+HB=$(prom 'prometheus_tsdb_head_chunks_storage_size_bytes{job="server"}')
+WB=$(prom 'prometheus_tsdb_wal_storage_size_bytes{job="server"}')
+SA=$(prom 'sum(prometheus_tsdb_head_samples_appended_total{job="server"})')
+read -r DISK BPS <<< "$(awk -v b="${BB:-0}" -v h="${HB:-0}" -v w="${WB:-0}" -v s="${SA:-0}" 'BEGIN{d=b+h+w; printf "%d %.4f", d, (s>0? d/s : 0)}')"
+echo "$LABEL,$HEAD,$DUR,$UP,$MEM,$AV,$CPU,$RAM,$CAD,$BB,$HB,$WB,$DISK,$SA,$BPS"

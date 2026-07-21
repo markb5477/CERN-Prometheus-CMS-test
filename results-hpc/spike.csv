@@ -1,0 +1,4 @@
+phase,params,head_series,max_scrape_s,modules_up,memory_bytes
+baseline_before,400000,400969,0.071080253,80,851161088
+spike,2000000,2000992,0.482612229,80,3965423616
+baseline_after,400000,2000992,0.064826515,80,4144353280
