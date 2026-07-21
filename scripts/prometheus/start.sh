@@ -9,6 +9,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # TSDB defaults under $TSDB_ROOT when set (HPC: node-local scratch), else the repo's .native-data.
 TSDB=${3:-${TSDB_ROOT:-$ROOT/.native-data}/tsdb-$PORT}
 rm -rf "$TSDB"
+# PROM_EXTRA_FLAGS (optional, space-separated) is appended verbatim, matching LOCAL-mode
+# start_prometheus in common.sh. soak_dist.sh uses it to force short block durations so a
+# short run still exercises the compactor.
 "$ROOT/bin/prometheus" --config.file="$CFG" --storage.tsdb.path="$TSDB" \
-  --web.listen-address=":$PORT" >/dev/null 2>&1 &
+  --web.listen-address=":$PORT" ${PROM_EXTRA_FLAGS:-} >/dev/null 2>&1 &
 echo "$(hostname): prometheus up on :$PORT (tsdb=$TSDB)"
