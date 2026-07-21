@@ -13,7 +13,7 @@
 # A prom_* status at the top (load healthy) is a REAL Prometheus ceiling. LOAD_SATURATED means
 # "add load nodes (LOAD_HOSTS fan-out) and re-run" - it is NOT Prometheus's limit.
 #
-# Usage: set up the controller ssh key + scripts/config/secrets.env (hosts), run config/stage.sh once, then:
+# Usage: fill scripts/config/secrets.env (hosts), run config/login.sh + config/stage.sh once, then:
 #   SCALES="0.5 1 2 3 4" ./scenarios/ramp_dist.sh      # coarse: find the upper bound
 #   SCALES="0.8 0.9 1.0 1.1 1.2" ./scenarios/ramp_dist.sh   # fine: scaling near real load
 # REMOTE_TSDB=/tmp/prom-tsdb points the collector TSDB at node-local scratch (do this on the HPC;
