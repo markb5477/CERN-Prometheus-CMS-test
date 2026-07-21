@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Copy the prebuilt binaries + node scripts to every CERN host that needs them.
 # The amd64 bin/{avalanche,prometheus} are gitignored, so they must be pushed here.
-# secrets.env is deliberately NOT staged (the password stays on the controller only).
+# secrets.env is deliberately NOT staged (controller-only config stays on the controller).
 CFG="$(cd "$(dirname "$0")" && pwd)"
 source "$CFG/common.sh"; load_secrets; source "$CFG/topology.sh"
-[ -z "${SSHPASS:-}" ] && { echo "fill scripts/config/secrets.env first" >&2; exit 1; }
+require_ssh "${LOAD_ARR[@]}" "${COLL_ARR[@]}"
 [ -x "$BIN/prometheus" ] && [ -x "$BIN/avalanche" ] || { echo "local bin/ missing prometheus/avalanche" >&2; exit 1; }
 
 # build a scrubbed copy of the scripts tree (no secrets.env) to ship

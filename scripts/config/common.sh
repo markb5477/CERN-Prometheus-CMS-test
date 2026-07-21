@@ -218,20 +218,43 @@ stop_all() {
   pkill -x avalanche 2>/dev/null; pkill -x prometheus 2>/dev/null; sleep 1
 }
 
-# ---- DIST-mode SSH wrappers (controller only; password from $SSHPASS via secrets.env) ----
-# CERN hosts: no pubkey/Kerberos, only keyboard-interactive/password (see DESIGN.md 4).
+# ---- DIST-mode SSH wrappers (controller only; interactive password, multiplexed) ----
+# sshpass is not installed on the CERN hosts and there is no sudo to add it, and we
+# deliberately do NOT store the password or install keys. Instead config/login.sh opens
+# one master connection per host where the password is typed by hand; every later call
+# reuses that socket and never re-authenticates. Side benefit: a ramp makes many rsh
+# calls, and skipping a fresh TCP+auth handshake each time removes measurable noise.
+SSH_MUX_DIR="${SSH_MUX_DIR:-$HOME/.ssh/cmspilot-mux}"
+SSH_MUX="$SSH_MUX_DIR/%r@%h:%p"
+: "${SSH_PERSIST:=12h}"   # master lifetime; must outlast the longest run (soak)
+
+# Shared by the master and its children. No BatchMode: the master must be free to
+# prompt. Children match on ControlPath alone, so they inherit the live session.
 SSH_OPTS=(-o GSSAPIAuthentication=no -o PubkeyAuthentication=no
           -o PreferredAuthentications=keyboard-interactive,password
+          -o "ControlPath=$SSH_MUX"
           -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 
-# read secrets.env (gitignored) into the environment; SSHPASS feeds sshpass -e.
+# read secrets.env (gitignored) into the environment for topology/overrides.
 load_secrets() {
   local f="$SCRIPTS/config/secrets.env"
   if [ -f "$f" ]; then set -a; . "$f"; set +a; fi
   : "${SSH_USER:=mbrandt}"
-  export SSHPASS
+  mkdir -p "$SSH_MUX_DIR"; chmod 700 "$SSH_MUX_DIR"
 }
-ssh_pass() { sshpass -e ssh "${SSH_OPTS[@]}" "$@"; }
-scp_pass() { sshpass -e scp "${SSH_OPTS[@]}" "$@"; }
+
+# is there a live master for this host? scenarios use this to fail fast with a useful
+# message instead of hanging on a password prompt halfway through a measurement.
+ssh_live() { ssh -O check -o "ControlPath=$SSH_MUX" "$SSH_USER@$1" 2>/dev/null; }
+
+require_ssh() {
+  local h missing=0
+  for h in "$@"; do
+    ssh_live "$h" || { echo "no live ssh session for $h" >&2; missing=1; }
+  done
+  [ "$missing" = 0 ] || { echo "run scripts/config/login.sh first" >&2; exit 1; }
+}
+ssh_pass() { ssh "${SSH_OPTS[@]}" "$@"; }
+scp_pass() { scp "${SSH_OPTS[@]}" "$@"; }
 # rsh <host> '<remote command>'
 rsh() { local h=$1; shift; ssh_pass "$SSH_USER@$h" "$@"; }

@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 # Connectivity smoke test: ssh into every configured host and print its specs.
-# Run this before any real DIST run to confirm secrets.env + the CERN auth flags work.
+# Run this before any real DIST run to confirm the ssh sessions + hosts work.
 CFG="$(cd "$(dirname "$0")" && pwd)"
 source "$CFG/common.sh"; load_secrets; source "$CFG/topology.sh"
-if [ -z "${SSHPASS:-}" ]; then
-  echo "SSHPASS not set - copy config/secrets.env.example to config/secrets.env and fill it in" >&2
-  exit 1
-fi
+require_ssh "${LOAD_ARR[@]}" "${COLL_ARR[@]}"
 ok=1
 for h in "${LOAD_ARR[@]}" "${COLL_ARR[@]}"; do
   echo "== $h =="

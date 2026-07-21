@@ -6,7 +6,7 @@
 set -uo pipefail
 CFG="$(cd "$(dirname "$0")/../config" && pwd)"
 source "$CFG/common.sh"; load_secrets; source "$CFG/topology.sh"
-[ -z "${SSHPASS:-}" ] && { echo "fill scripts/config/secrets.env first" >&2; exit 1; }
+require_ssh "${LOAD_ARR[@]}" "${COLL_ARR[@]}"
 [ "${#COLL_ARR[@]}" -lt 2 ] && echo "NOTE: <2 collector hosts configured; both replicas will share a host (CPU contention)."
 
 OUT="$DATA/twin.csv"

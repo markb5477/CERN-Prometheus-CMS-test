@@ -52,10 +52,11 @@ path (best-case ceiling). A guard stops a run if host free RAM drops below
 
 Keeping the generators off the collector is the point: Prometheus is alone on its
 node, so its CPU/RAM is the true per-node footprint. Copy
-`config/secrets.env.example` to `config/secrets.env`, fill in `SSHPASS` and the
+`config/secrets.env.example` to `config/secrets.env` and fill in the
 `LOAD_HOSTS` / `COLLECTOR_HOSTS`, then:
 
 ```bash
+./scripts/config/login.sh    # type your password once per host; sessions last 12h
 ./scripts/config/check.sh    # reachability + host specs
 ./scripts/config/stage.sh    # scp binaries + scripts to each host
 ./scripts/scenarios/twin.sh  # or shard.sh

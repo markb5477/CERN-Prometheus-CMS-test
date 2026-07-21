@@ -8,7 +8,7 @@
 set -uo pipefail
 CFG="$(cd "$(dirname "$0")/../config" && pwd)"
 source "$CFG/common.sh"; load_secrets; source "$CFG/topology.sh"
-[ -z "${SSHPASS:-}" ] && { echo "fill scripts/config/secrets.env first" >&2; exit 1; }
+require_ssh "${LOAD_ARR[@]}" "${COLL_ARR[@]}"
 
 read -ra KS <<< "${SHARD_SET:-1 2 4 8}"
 NC=${#COLL_ARR[@]}
