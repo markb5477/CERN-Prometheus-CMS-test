@@ -83,14 +83,14 @@ for S in $SCALES; do
   scp_pass "$NATIVE/ramp.yml" "$SSH_USER@$COLL:$REMOTE_ROOT/.native-data/ramp.yml" >/dev/null
   rsh "$COLL" "mkdir -p $REMOTE_ROOT/.native-data; ${REMOTE_TSDB:+TSDB_ROOT=$REMOTE_TSDB} $REMOTE_ROOT/scripts/prometheus/start.sh $REMOTE_ROOT/.native-data/ramp.yml $PROM_PORT" >/dev/null
 
-  # collector row (measure.sh sleeps SETTLE internally, then samples once)
-  CROW=$(rsh "$COLL" "PROM_URL=http://localhost:$PROM_PORT $REMOTE_ROOT/scripts/prometheus/measure.sh s$S")
+  # collector row (measure.sh waits for all N targets up, sleeps SETTLE, then samples once)
+  CROW=$(rsh "$COLL" "READY_N=$N PROM_URL=http://localhost:$PROM_PORT $REMOTE_ROOT/scripts/prometheus/measure.sh s$S")
   IFS=, read -r _L HEAD DUR UP MEM CAV CPU RAM CAD BB HB WB DISK SA BPS <<< "$CROW"
   IFS=, read -r LCPU LRSS LHCPU LAVAIL <<< "$(measure_load)"
 
   STATUS=ok
   awk "BEGIN{exit !(${CAD:-0} > 1.05)}" && STATUS=prom_cadence_slip
-  awk "BEGIN{exit !(${DUR:-0} > 1.0)}"  && STATUS=prom_scrape_over
+  awk "BEGIN{exit !(${DUR:-0} > 0.9)}"  && STATUS=prom_scrape_over   # 0.9 = $TIMEOUT
   [ "${UP:-0}" -lt "$N" ] && STATUS=prom_targets_dropped
   # load-side override: a saturated generator invalidates the collector reading
   awk "BEGIN{exit !(${LHCPU:-0} > $LOAD_SAT_CPU)}" && STATUS=LOAD_SATURATED

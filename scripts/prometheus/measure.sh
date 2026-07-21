@@ -14,6 +14,23 @@
 set -uo pipefail
 source "$(cd "$(dirname "$0")/../config" && pwd)/common.sh"
 LABEL=${1:?usage: measure.sh <label>}
+
+# Wait for the fleet to be fully up BEFORE starting the settle clock. Target discovery plus
+# first scrape takes ~30s at 200 targets and scales with target count, so a fixed sleep lands
+# mid-startup at larger scales. That matters because the windowed queries below look back $WIN:
+# if the window overlaps startup, max_over_time reports the discovery transient (25s+ scrapes,
+# a fraction of targets up) as though it were a steady-state ceiling. Set READY_N to the
+# expected target count to gate on readiness; READY_N=0 keeps the old fixed-sleep behaviour.
+READY_N=${READY_N:-0}
+if [ "$READY_N" -gt 0 ]; then
+  deadline=$(( SECONDS + ${READY_TIMEOUT:-300} ))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    u=$(prom 'count(up{job="modules"}==1)')
+    [ "${u:-0}" -ge "$READY_N" ] && break
+    sleep 2
+  done
+fi
+# ...then let a full settle pass, so every windowed query covers steady state only.
 sleep "$SETTLE"
 HEAD=$(prom 'prometheus_tsdb_head_series')
 DUR=$(prom "max_over_time(max(scrape_duration_seconds{job=\"modules\"})[$WIN:1s])")
