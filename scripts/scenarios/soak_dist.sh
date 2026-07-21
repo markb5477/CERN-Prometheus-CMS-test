@@ -109,8 +109,14 @@ echo " up=${u:-0}/$N"
 
 echo "elapsed_s,head_series,max_scrape_s,modules_up,cadence_s,compactions,memory_bytes,cpu_pct,ram_pct,block_bytes,head_bytes,wal_bytes,disk_bytes,samples_appended,bytes_per_sample,avail_gb,load_av_cpu,load_av_rss,load_host_cpu,load_avail_gb" > "$OUT"
 
+# Seconds per block, for the bytes/sample denominator: MIN_BLOCK when forced, else the
+# TSDB default of 2h. Accepts the Go-duration forms Prometheus takes (900s, 15m, 2h).
+BLOCK_SECS=$(awk -v d="${MIN_BLOCK:-2h}" 'BEGIN{
+  n=d; sub(/[a-z]+$/,"",n); u=d; sub(/^[0-9.]+/,"",u)
+  m=(u=="h")?3600:(u=="m")?60:1; printf "%d", n*m }')
+
 START=$(date +%s)
-PREV_BLK=""; PREV_BB=""; PREV_SA=""
+PREV_BLK=""; PREV_BB=""; PREV_SA=""; NCOMP=0
 while :; do
   NOW=$(($(date +%s) - START))
   CROW=$(rsh "$COLL" "PROM_URL=http://localhost:$PROM_PORT $REMOTE_ROOT/scripts/prometheus/soak_sample.sh" 2>/dev/null)
@@ -121,13 +127,26 @@ while :; do
     "$NOW" "${UP:-?}" "$N" "${DUR:-?}" "${CAD:-?}" "${CPU:-?}" "${RAM:-?}" "${BLK:-?}" "${DISK:-?}" "${BPS:-?}" "${LHCPU:-?}" "${LAVAIL:-?}"
   echo "$NOW,$HEAD,$DUR,$UP,$CAD,$BLK,$MEM,$CPU,$RAM,$BB,$HB,$WB,$DISK,$SA,$BPS,$CAV,$LCPU,$LRSS,$LHCPU,$LAVAIL" >> "$OUT"
 
-  # The headline number of the whole soak: when the compaction counter ticks, the change in
-  # on-disk BLOCK bytes over the change in samples is the real, WAL-free cost per sample.
+  # The headline number of the whole soak: when the compaction counter ticks, the growth in
+  # on-disk BLOCK bytes divided by the samples that block CONTAINS is the real, WAL-free cost
+  # per sample.
+  #
+  # The denominator must be the block's own sample count, NOT the change in
+  # samples_appended_total between two rows: the block holds a whole block period of data
+  # (BLOCK_SECS) while consecutive rows are only $SAMPLE apart, and dividing by the latter
+  # overstates bytes/sample by BLOCK_SECS/SAMPLE (it first reported 54.7 instead of ~2).
+  # Our load is exactly $P samples/s by construction, so P*BLOCK_SECS is the exact count.
+  #
+  # The FIRST compaction is skipped: Prometheus aligns block boundaries to wall-clock
+  # multiples, so block 1 covers an arbitrary partial period (observed: cut at t=1346s for a
+  # 900s block) and its span is ambiguous. Every later block spans exactly BLOCK_SECS.
   if [ -n "$PREV_BLK" ] && [ "${BLK:-0}" != "$PREV_BLK" ]; then
-    awk -v b0="$PREV_BB" -v b1="${BB:-0}" -v s0="$PREV_SA" -v s1="${SA:-0}" 'BEGIN{
-      db=b1-b0; ds=s1-s0
-      if (ds>0 && db>0) printf "  ** COMPACTION: %.0f block bytes / %.0f samples = %.3f bytes/sample (WAL-free)\n", db, ds, db/ds
-      else              printf "  ** COMPACTION: blocks %.0f -> %.0f bytes (no clean delta yet)\n", b0, b1 }'
+    NCOMP=$(( NCOMP + 1 ))
+    awk -v b0="$PREV_BB" -v b1="${BB:-0}" -v p="$P" -v bs="$BLOCK_SECS" -v n="$NCOMP" 'BEGIN{
+      db=b1-b0; ds=p*bs
+      if (n==1) { printf "  ** COMPACTION %d: blocks -> %.0f bytes (first block, boundary-aligned: span ambiguous, skipping)\n", n, b1; exit }
+      if (db>0) printf "  ** COMPACTION %d: %.0f block bytes / %.0f samples = %.3f bytes/sample (WAL-free)\n", n, db, ds, db/ds
+      else      printf "  ** COMPACTION %d: blocks %.0f -> %.0f bytes (no growth)\n", n, b0, b1 }'
   fi
   PREV_BLK=${BLK:-0}; PREV_BB=${BB:-0}; PREV_SA=${SA:-0}
 
