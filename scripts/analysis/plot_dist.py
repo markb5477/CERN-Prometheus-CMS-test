@@ -10,7 +10,10 @@ Unlike the baseline plots these come from a two-node run: Prometheus alone on th
 load generated elsewhere, so cpu_pct/ram_pct are an uncontended per-node footprint.
 
 Env: PARAMS (real detector size, default 880000), COLL_CORES (collector cores, default 32),
-     BLOCK_SECS (soak block period, default 900 = MIN_BLOCK=15m).
+     BLOCK_SECS (soak block period, default 900 = MIN_BLOCK=15m),
+     SOAK_CSV / RAMP_CSV (which file to read - the scenarios archive previous runs under a
+     timestamp, so point SOAK_CSV at the MIN_BLOCK run to get bytes/sample and at the
+     default-block run to get the true memory curve).
 """
 import os
 import matplotlib
@@ -22,6 +25,8 @@ from lib import rows, num, kfmt, save, OK, BAD, LINE, CPUC, RAMC
 PARAMS = float(os.environ.get("PARAMS", 880_000))
 CORES = float(os.environ.get("COLL_CORES", 32))
 BLOCK_SECS = float(os.environ.get("BLOCK_SECS", 900))
+SOAK_CSV = os.environ.get("SOAK_CSV", "soak_dist.csv")
+RAMP_CSV = os.environ.get("RAMP_CSV", "ramp_dist.csv")
 BUDGET = 0.9          # scrape_timeout: an overrun is a dropped sample
 CADENCE_MAX = 1.05
 plt.rcParams.update({"figure.dpi": 130, "font.size": 10})
@@ -44,9 +49,9 @@ def fit_cross(x, y, target, deg):
 
 # ---------------------------------------------------------------- ramp
 def plot_ramp():
-    r = [x for x in rows("ramp_dist.csv") if x.get("status") == "ok"]
+    r = [x for x in rows(RAMP_CSV) if x.get("status") == "ok"]
     if len(r) < 2:
-        print("no usable data/ramp_dist.csv (need >=2 rows with status=ok) - skipping ramp")
+        print(f"no usable data/{RAMP_CSV} (need >=2 rows with status=ok) - skipping ramp")
         return None
     par = np.array(col(r, "params"), dtype=float)
     scr = np.array(col(r, "max_scrape_s"), dtype=float)
@@ -117,9 +122,9 @@ def plot_ramp():
 
 # ---------------------------------------------------------------- soak
 def plot_soak():
-    r = [x for x in rows("soak_dist.csv") if (num(x.get("elapsed_s")) or 0) > 0]
+    r = [x for x in rows(SOAK_CSV) if (num(x.get("elapsed_s")) or 0) > 0]
     if len(r) < 3:
-        print("no usable data/soak_dist.csv - skipping soak")
+        print(f"no usable data/{SOAK_CSV} - skipping soak")
         return None
     t = np.array(col(r, "elapsed_s"), dtype=float) / 60.0     # minutes
     scr = np.array(col(r, "max_scrape_s"), dtype=float)
@@ -239,7 +244,7 @@ def plot_projection(ramp, soak):
         labels = ["CPU\n(cores)", "scrape time\n(s)"]
         used = [ramp["cores_at_detector"], None]
         cap = [CORES, BUDGET]
-        r0 = [x for x in rows("ramp_dist.csv") if x.get("status") == "ok"]
+        r0 = [x for x in rows(RAMP_CSV) if x.get("status") == "ok"]
         at = min(r0, key=lambda x: abs((num(x["params"]) or 0) - PARAMS)) if r0 else None
         used[1] = num(at.get("max_scrape_s")) if at else 0
         xs = np.arange(len(labels))
