@@ -41,7 +41,11 @@ trap stop_fleet EXIT
 # launch the generator fleet for <ot> OT + <it> IT boards, spread contiguously across LOAD_ARR
 # in the SAME order gen_targets places them (OT boards first, then IT).
 launch_load() {
-  local ot=$1 it=$2 n=$((ot+it)) nh=${#LOAD_ARR[@]} per h cnt series
+  # NB: split across statements -- bash expands every initializer in a single `local`
+  # before assigning any, so `n=$((ot+it))` on the same line reads ot/it as unset.
+  local ot=$1 it=$2
+  local n=$((ot+it)) nh=${#LOAD_ARR[@]}
+  local per h cnt series
   { for ((i=0;i<ot;i++)); do echo "$OT_PER_BOARD"; done
     for ((i=0;i<it;i++)); do echo "$IT_PER_BOARD"; done; } > "$NATIVE/ramp-series.txt"
   per=$(( (n + nh - 1) / nh ))
